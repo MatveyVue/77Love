@@ -1,32 +1,38 @@
 const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 
-const token = '7784753596:AAFRSOreZUSN_w2-g6lhxRjKg1HUN6oa0tg'; // Вставьте сюда токен
-const webhookUrl = 'https://77-love.vercel.app/'; // Укажите ваш публичный HTTPS URL для вебхука
-const forwardChatId = '-1002647773080'; // ID чата для пересылки
+const token = '7784753596:AAFRSOreZUSN_w2-g6lhxRjKg1HUN6oa0tg'; // вставьте сюда ваш токен
+const webhookUrl = 'https://<your-vercel-deployment-url>/api/webhook'; // вставьте сюда URL вашего деплоя
+const forwardChatId = '-1002647773080';
 
 const app = express();
 app.use(express.json());
 
 const bot = new TelegramBot(token);
 
-// Устанавливаем вебхук
-bot.setWebHook(webhookUrl).then(() => {
-  console.log('Webhook установлен');
-}).catch(console.error);
+// при старте — установите вебхук
+// важно: В serverless нужно убедиться, что он вызывается только один раз, например, через глобальную переменную
+let webhookSet = false;
 
-// Обработка входящих обновлений
-app.post('/webhook', async (req, res) => {
+app.all('*', async (req, res) => {
+  if (!webhookSet) {
+    try {
+      await bot.setWebHook(webhookUrl);
+      console.log('Webhook установлен');
+      webhookSet = true;
+    } catch (err) {
+      console.error('Ошибка установки webhook:', err);
+    }
+  }
+
   const update = req.body;
 
-  // Обработка команд /start и /help
   if (update.message) {
     const message = update.message;
     const chatId = message.chat.id;
     const user = message.from;
     const text = message.text || '';
 
-    // Обработка команд
     if (text.startsWith('/start')) {
       const reply = chatId > 0
         ? `Привет, ${user.is_bot ? '' : user.first_name}! Я бот-автоответчик. Напиши мне что-нибудь, и я перешлю сообщение в @nagpz.`
@@ -44,14 +50,12 @@ app.post('/webhook', async (req, res) => {
       await bot.sendMessage(chatId, helpText);
     } else {
       // Обработка обычных сообщений
-      // 1. автоответ
       let replyMsg = 'Здравствуйте! Ваше сообщение отправлено в @nagpz.';
-      if (text.toLowerCase().includes('как дела') && chatId < 0) { // В группе или канале
+      if (text.toLowerCase().includes('как дела') && chatId < 0) {
         replyMsg = 'У меня все хорошо, спасибо! Надеюсь, у вас тоже.';
       }
       await bot.sendMessage(chatId, replyMsg);
 
-      // 2. пересылка
       try {
         await bot.sendMessage(forwardChatId, text);
       } catch (err) {
@@ -62,8 +66,4 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 });
 
-// Запуск сервера
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}`);
-});
+module.exports = app;
