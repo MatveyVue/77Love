@@ -2,7 +2,7 @@ const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 
 const token = '7784753596:AAFRSOreZUSN_w2-g6lhxRjKg1HUN6oa0tg'; // вставьте сюда ваш токен
-const webhookUrl = 'https://<your-vercel-deployment-url>/api/webhook'; // вставьте сюда URL вашего деплоя
+const webhookUrl = 'https://77-love.vercel.app/'; // вставьте сюда URL вашего деплоя
 const forwardChatId = '-1002647773080';
 
 const app = express();
